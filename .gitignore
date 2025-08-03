@@ -4,5 +4,4 @@ __pycache__/
 *.pyo
 *.pyd
 env/*
-feature/test
 .pytest_cache/
