@@ -1,0 +1,7 @@
+{
+  "function": "x**2",
+  "lower_limit": "0",
+  "upper_limit": "1",
+  "intervals": "10",
+  "method": "Simpson's 1/3"
+} 

@@ -1,0 +1,7 @@
+{
+  "function": "sin(x)",
+  "lower_limit": "0",
+  "upper_limit": "pi",
+  "intervals": "6",
+  "method": "Trapezoidal"
+}
