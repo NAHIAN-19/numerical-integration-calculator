@@ -1,6 +1,6 @@
 import json
 import sympy as sp
-from io_.validator import validate_params
+from io_layer.validator import validate_params
 from typing import Callable, Tuple, Union, Dict, Any
 
 _ALLOWED_FUNCS = {

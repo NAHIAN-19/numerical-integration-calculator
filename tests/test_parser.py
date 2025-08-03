@@ -1,7 +1,7 @@
 import pytest
 import math
-from io_.parser import parse_input
-from io_.validator import validate_params
+from io_layer.parser import parse_input
+from io_layer.validator import validate_params
 
 def test_validate_params_valid():
     # Should not raise

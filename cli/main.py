@@ -1,6 +1,6 @@
 import argparse
 import sys
-from io_.parser import parse_input
+from io_layer.parser import parse_input
 
 def main():
     parser = argparse.ArgumentParser(description="Numerical Integration Calculator - IO Test CLI")
