@@ -27,6 +27,12 @@ A modern web-based numerical integration calculator built with Django that imple
 - **Export Options**: CSV, JSON, or detailed text report formats
 - **Calculation History**: Track recent calculations
 
+## 📸 Screenshots
+
+### Full Page View
+![Full Page Screenshot](https://github.com/NAHIAN-19/numerical-integration-calculator/tree/main/static/ss/nic_full.png)
+
+
 ## 🛠️ Installation
 
 ### Prerequisites
@@ -37,12 +43,12 @@ A modern web-based numerical integration calculator built with Django that imple
 ### Quick Setup
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/numerical_integration.git
-cd numerical_integration
+git clone https://github.com/NAHIAN-19/numerical-integration-calculator.git
+cd numerical-integration-calculator
 
 # Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+python -m venv env
+source env/bin/activate  # On Windows: env\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
@@ -131,9 +137,9 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 📞 Support
 
-- Check [Issues](https://github.com/yourusername/numerical_integration/issues)
+- Check [Issues](https://github.com/NAHIAN-19/numerical-integration-calculator/issues)
 - Create a new issue with detailed description
-- Contact: your.email@example.com
+- Contact: nahiannazeeb19@gmail.com
 
 ---
 

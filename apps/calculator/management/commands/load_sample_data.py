@@ -25,7 +25,8 @@ class Command(BaseCommand):
             files_to_process = [
                 'sample_integration_data.csv',
                 'quadratic_function.csv',
-                'sine_function.csv'
+                'sine_function.csv',
+                'sine_sample_data_100.csv'
             ]
 
         for filename in files_to_process:
