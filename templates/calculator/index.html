@@ -1,0 +1,430 @@
+{% extends 'base.html' %}
+
+{% block title %}Numerical Integration Calculator{% endblock %}
+
+{% block content %}
+<div x-data="calculatorApp()" class="space-y-8">
+    <!-- Header Section -->
+    <div class="text-center">
+        <h2 class="text-4xl font-bold text-gray-800 mb-4">Numerical Integration Calculator</h2>
+        <p class="text-lg text-gray-600 max-w-3xl mx-auto">
+            Calculate definite integrals using Trapezoidal Rule, Simpson's 1/3 Rule, and Simpson's 3/8 Rule.
+            Upload CSV data or enter values manually for precise numerical integration.
+        </p>
+    </div>
+
+    <!-- Data Input Section -->
+    <div class="grid lg:grid-cols-2 gap-8">
+        <!-- Manual Input -->
+        <div class="bg-white rounded-xl shadow-lg p-6 card-shadow">
+            <div class="flex items-center mb-6">
+                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                    <span class="text-blue-600 font-bold">📝</span>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-800">Manual Data Entry</h3>
+            </div>
+            
+            <form id="manual-form" @submit.prevent="calculateMethod('manual')">
+                {% csrf_token %}
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">X Values</label>
+                        {{ form.x_values }}
+                        <p class="text-xs text-gray-500 mt-1">{{ form.x_values.help_text }}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Y Values</label>
+                        {{ form.y_values }}
+                        <p class="text-xs text-gray-500 mt-1">{{ form.y_values.help_text }}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Integration Method</label>
+                        {{ form.method }}
+                    </div>
+                </div>
+                
+                <div class="flex space-x-3 mt-6">
+                    <button type="submit" 
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
+                            :disabled="loading">
+                        <span x-show="!loading">Calculate</span>
+                        <div x-show="loading" class="loading-spinner"></div>
+                    </button>
+                    
+                    <button type="button" 
+                            @click="compareAllMethods('manual')"
+                            class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200"
+                            :disabled="loading">
+                        Compare Methods
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- CSV Upload -->
+        <div class="bg-white rounded-xl shadow-lg p-6 card-shadow">
+            <div class="flex items-center mb-6">
+                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                    <span class="text-green-600 font-bold">📊</span>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-800">CSV File Upload</h3>
+            </div>
+            
+            <div class="space-y-4">
+                <!-- File Upload Area -->
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors duration-200"
+                    @dragover.prevent @drop.prevent="handleFileDrop($event)">
+                    <div class="space-y-2">
+                        <div class="text-4xl">📁</div>
+                        <p class="text-gray-600">Drag and drop your CSV file here, or</p>
+                        <label class="inline-block bg-blue-100 hover:bg-blue-200 text-blue-700 font-medium py-2 px-4 rounded-lg cursor-pointer transition-colors duration-200">
+                            Browse Files
+                            <input type="file" accept=".csv" @change="handleFileSelect($event)" class="hidden">
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- CSV Data Preview -->
+                <div x-show="csvData" class="bg-gray-50 rounded-lg p-4">
+                    <h4 class="font-medium text-gray-800 mb-2">Data Preview</h4>
+                    <div x-show="csvData" class="text-sm text-gray-600">
+                        <p>Points: <span x-text="csvData?.data_points || 0"></span></p>
+                        <p>X Range: <span x-text="csvData?.x_range ? `[${csvData.x_range[0]}, ${csvData.x_range[1]}]` : 'N/A'"></span></p>
+                        <p>Y Range: <span x-text="csvData?.y_range ? `[${csvData.y_range[0]}, ${csvData.y_range[1]}]` : 'N/A'"></span></p>
+                    </div>
+                </div>
+                
+                <!-- Method Selection for CSV -->
+                <div x-show="csvData">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Integration Method</label>
+                    <select x-model="csvMethod" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="trapezoidal">Trapezoidal Rule</option>
+                        <option value="simpson_1_3">Simpson's 1/3 Rule</option>
+                        <option value="simpson_3_8">Simpson's 3/8 Rule</option>
+                    </select>
+                </div>
+                
+                <!-- CSV Action Buttons -->
+                <div x-show="csvData" class="flex space-x-3">
+                    <button @click="calculateMethod('csv')" 
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200"
+                            :disabled="loading">
+                        Calculate
+                    </button>
+                    
+                    <button @click="compareAllMethods('csv')" 
+                            class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200"
+                            :disabled="loading">
+                        Compare Methods
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Section -->
+    <div x-show="results || comparisonResults" class="bg-white rounded-xl shadow-lg p-6 card-shadow">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-semibold text-gray-800">
+                <span x-show="results && !comparisonResults">Calculation Results</span>
+                <span x-show="comparisonResults">Method Comparison</span>
+            </h3>
+            
+            <!-- Export Options -->
+            <div class="flex space-x-2">
+                <div class="relative" x-data="{ open: false }">
+                    <button @click="open = !open" 
+                            class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center">
+                        Export Results
+                        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    
+                    <div x-show="open" @click.away="open = false" 
+                        class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border">
+                        <div class="py-1">
+                            <a @click="exportResults('csv')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">Export as CSV</a>
+                            <a @click="exportResults('json')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">Export as JSON</a>
+                            <a @click="exportResults('txt')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">Export Report</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Single Method Results -->
+        <div x-show="results && !comparisonResults" class="space-y-6">
+            <!-- Result Summary -->
+            <div class="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="text-lg font-semibold text-blue-800" x-text="results?.method_name"></h4>
+                        <p class="text-2xl font-bold text-blue-900" x-text="results?.result ? formatNumber(results.result, 8) : 'N/A'"></p>
+                    </div>
+                    <div x-show="results?.error_estimate" class="text-right">
+                        <p class="text-sm text-blue-600">Error Estimate</p>
+                        <p class="text-lg font-semibold text-blue-800" x-text="results?.error_estimate ? '±' + formatNumber(Math.abs(results.error_estimate), 8) : 'N/A'"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calculation Steps -->
+            <div class="space-y-3">
+                <h4 class="text-lg font-semibold text-gray-800">Calculation Steps</h4>
+                <div class="space-y-2">
+                    <template x-for="(step, index) in results?.steps || []" :key="index">
+                        <div class="step-item p-3 rounded-lg">
+                            <p class="text-sm font-mono" x-text="step"></p>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison Results -->
+        <div x-show="comparisonResults" class="space-y-6">
+            <div class="grid md:grid-cols-3 gap-4">
+                <template x-for="(result, method) in comparisonResults || {}" :key="method">
+                    <div class="method-card bg-white border rounded-lg p-4" 
+                        :class="result.error ? 'border-red-300 bg-red-50' : 'border-gray-200'">
+                        <h4 class="font-semibold text-gray-800 mb-2" x-text="result.method_name || method"></h4>
+                        <div x-show="!result.error">
+                            <p class="text-xl font-bold text-blue-600" x-text="formatNumber(result.result, 6)"></p>
+                            <p x-show="result.error_estimate" class="text-sm text-gray-600">
+                                Error: ±<span x-text="formatNumber(Math.abs(result.error_estimate), 6)"></span>
+                            </p>
+                        </div>
+                        <div x-show="result.error" class="text-red-600">
+                            <p class="text-sm" x-text="result.error"></p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Plot Display -->
+        <div x-show="plotImage" class="mt-6">
+            <h4 class="text-lg font-semibold text-gray-800 mb-4">Visualization</h4>
+            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                <img :src="'data:image/png;base64,' + plotImage" 
+                    alt="Integration Plot" 
+                    class="max-w-full h-auto mx-auto rounded-lg shadow-md">
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Display -->
+    <div x-show="error" class="error-message p-4 rounded-lg">
+        <div class="flex items-center">
+            <div class="text-red-500 mr-3">⚠️</div>
+            <div>
+                <h4 class="font-semibold text-red-800">Error</h4>
+                <p class="text-red-700" x-text="error"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Calculations -->
+    {% if recent_calculations %}
+    <div class="bg-white rounded-xl shadow-lg p-6 card-shadow">
+        <h3 class="text-xl font-semibold text-gray-800 mb-4">Recent Calculations</h3>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Result</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Error Estimate</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for calc in recent_calculations %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {{ calc.get_method_display }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ calc.result|floatformat:6 }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {% if calc.error_estimate %}±{{ calc.error_estimate|floatformat:6 }}{% else %}N/A{% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ calc.created_at|date:"M d, Y H:i" }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function calculatorApp() {
+    return {
+        loading: false,
+        error: null,
+        results: null,
+        comparisonResults: null,
+        plotImage: null,
+        csvData: null,
+        csvMethod: 'trapezoidal',
+
+        async calculateMethod(source) {
+            this.loading = true;
+            this.error = null;
+            this.results = null;
+            this.comparisonResults = null;
+            this.plotImage = null;
+
+            try {
+                const formData = new FormData();
+                
+                if (source === 'csv') {
+                    formData.append('data_source', 'csv');
+                    formData.append('method', this.csvMethod);
+                } else {
+                    const form = document.getElementById('manual-form');
+                    const formDataEntries = new FormData(form);
+                    for (let [key, value] of formDataEntries.entries()) {
+                        formData.append(key, value);
+                    }
+                }
+
+                const response = await fetch('{% url "calculator:calculate" %}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    this.results = data.result;
+                    this.plotImage = data.plot;
+                    showNotification('Calculation completed successfully!', 'success');
+                } else {
+                    this.error = data.error;
+                    if (data.validation_errors) {
+                        this.error += '\n' + Object.values(data.validation_errors).join('\n');
+                    }
+                }
+            } catch (err) {
+                this.error = 'Network error: ' + err.message;
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async compareAllMethods(source) {
+            this.loading = true;
+            this.error = null;
+            this.results = null;
+            this.comparisonResults = null;
+            this.plotImage = null;
+
+            try {
+                const formData = new FormData();
+                
+                if (source === 'csv') {
+                    formData.append('data_source', 'csv');
+                } else {
+                    const form = document.getElementById('manual-form');
+                    const formDataEntries = new FormData(form);
+                    for (let [key, value] of formDataEntries.entries()) {
+                        if (key !== 'method') { // Don't include method for comparison
+                            formData.append(key, value);
+                        }
+                    }
+                }
+
+                const response = await fetch('{% url "calculator:compare" %}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    this.comparisonResults = data.results;
+                    this.plotImage = data.plot;
+                    showNotification('Method comparison completed!', 'success');
+                } else {
+                    this.error = data.error;
+                }
+            } catch (err) {
+                this.error = 'Network error: ' + err.message;
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                await this.uploadCSV(file);
+            }
+        },
+
+        async handleFileDrop(event) {
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                await this.uploadCSV(files[0]);
+            }
+        },
+
+        async uploadCSV(file) {
+            this.loading = true;
+            this.error = null;
+
+            try {
+                const formData = new FormData();
+                formData.append('csv_file', file);
+
+                const response = await fetch('{% url "calculator:upload_csv" %}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    this.csvData = data;
+                    showNotification(data.message, 'success');
+                } else {
+                    this.error = data.error;
+                }
+            } catch (err) {
+                this.error = 'File upload error: ' + err.message;
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        exportResults(format) {
+            const type = this.comparisonResults ? 'comparison' : 'last';
+            const url = `{% url "calculator:export" %}?format=${format}&type=${type}`;
+            window.open(url, '_blank');
+        },
+
+        formatNumber(num, decimals = 6) {
+            return parseFloat(num).toFixed(decimals);
+        }
+    }
+}
+</script>
+{% endblock %}
