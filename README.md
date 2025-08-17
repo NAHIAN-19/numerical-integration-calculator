@@ -30,7 +30,7 @@ A modern web-based numerical integration calculator built with Django that imple
 ## 📸 Screenshots
 
 ### Full Page View
-![Full Page Screenshot](https://github.com/NAHIAN-19/numerical-integration-calculator/tree/main/static/ss/nic_full.png)
+![Full Page Screenshot](https://github.com/NAHIAN-19/numerical-integration-calculator/blob/main/static/ss/nic_full.png)
 
 
 ## 🛠️ Installation
